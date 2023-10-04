@@ -15,7 +15,6 @@ namespace ICSharpCode.TextEditor.Document
     ///     You get this exception only once per highlighting definition, after that the definition
     ///     is replaced with the default highlighter.
     /// </summary>
-    [Serializable]
     public class HighlightingDefinitionInvalidException : Exception
     {
         public HighlightingDefinitionInvalidException()
@@ -27,10 +26,6 @@ namespace ICSharpCode.TextEditor.Document
         }
 
         public HighlightingDefinitionInvalidException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected HighlightingDefinitionInvalidException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }
