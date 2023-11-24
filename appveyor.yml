@@ -29,32 +29,38 @@ build:
 # to run your custom scripts instead of automatic MSBuild
 build_script:
 - ps: |
-    # build .NET
-    dotnet build -c Release --verbosity q --nologo /bl:.\build.binlog
-    if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
+      # Install the required .NET SDK
+      Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./dotnet-install.ps1"
+      ./dotnet-install.ps1 -Channel LTS -InstallDir 'C:\Program Files\dotnet'
+      # Remove the script so it doesn't "pollute" the build
+      Remove-Item -Path .\dotnet-install.ps1
+- ps: |
+      # build .NET
+      dotnet build -c Release --verbosity q --nologo /bl:.\build.binlog
+      if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
 
 # to run your custom scripts instead of automatic tests
 test_script:
 - ps: |
-    dotnet test -c Release --no-restore --nologo --verbosity q --test-adapter-path:. --logger:Appveyor --logger:trx /bl:.\tests.binlog
-    if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
+      dotnet test -c Release --no-restore --nologo --verbosity q --test-adapter-path:. --logger:Appveyor --logger:trx /bl:.\tests.binlog
+      if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
 
 # on build failure
 on_failure:
 - ps: |
-    Get-ChildItem -recurse *.binlog -ErrorAction SilentlyContinue `
-    | ForEach-Object {
-        Push-AppveyorArtifact "$_"
-    }
+      Get-ChildItem -recurse *.binlog -ErrorAction SilentlyContinue `
+      | ForEach-Object {
+          Push-AppveyorArtifact "$_"
+      }
 - ps: |
-    Get-ChildItem -recurse Test\TestsResults\*.trx | `
-        ForEach-Object {
-            $file = $_.FullName.Replace('[', '``[').Replace(']', '``]')
-            #Write-Output "Processing $file"
+      Get-ChildItem -recurse Test\TestsResults\*.trx | `
+          ForEach-Object {
+              $file = $_.FullName.Replace('[', '``[').Replace(']', '``]')
+              #Write-Output "Processing $file"
 
-            [xml]$xml = Get-Content -Path $file
-            $xml.TestRun.Results.UnitTestResult | Where-Object outcome -eq 'Failed' | ForEach-Object {
-                $errorMessage = "$($_.Output.ErrorInfo.Message)`r`n$($_.Output.ErrorInfo.StackTrace)`r`n"
-                Write-Host $errorMessage -ForegroundColor Red
-            }
-        }
+              [xml]$xml = Get-Content -Path $file
+              $xml.TestRun.Results.UnitTestResult | Where-Object outcome -eq 'Failed' | ForEach-Object {
+                  $errorMessage = "$($_.Output.ErrorInfo.Message)`r`n$($_.Output.ErrorInfo.StackTrace)`r`n"
+                  Write-Host $errorMessage -ForegroundColor Red
+              }
+          }
